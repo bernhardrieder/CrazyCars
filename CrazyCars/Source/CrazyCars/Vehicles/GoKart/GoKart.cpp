@@ -3,48 +3,68 @@
 #include "GoKart.h"
 #include "Components/InputComponent.h"
 
-// Sets default values
 AGoKart::AGoKart()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 }
 
-// Called when the game starts or when spawned
 void AGoKart::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
-void AGoKart::Tick(float DeltaTime)
+void AGoKart::Tick(float deltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(deltaTime);
 
-	FVector translation = m_velocity * 100 * DeltaTime; // now in meter
-	AddActorWorldOffset(translation);
+	FVector force = GetActorForwardVector() * m_maxDrivingForce * m_throttle;
+	FVector acceleration = force / m_mass;
+	m_velocity += (acceleration * deltaTime);
+
+	applyRotation(deltaTime);
+	updateLocationFromVelocity(deltaTime);
 }
 
-// Called to bind functionality to input
-void AGoKart::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AGoKart::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	Super::SetupPlayerInputComponent(playerInputComponent);
 
-	// set up gameplay key bindings
-	check(PlayerInputComponent);
+	check(playerInputComponent);
 
-	PlayerInputComponent->BindAxis("MoveForward", this, &AGoKart::moveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &AGoKart::moveRight);
+	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::moveForward);
+	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::moveRight);
+}
+
+void AGoKart::applyRotation(float deltaTime)
+{
+	float rotationAngle = m_maxSteeringDegreesPerSeconds * deltaTime * m_steering;
+	FQuat rotationDelta = FQuat(GetActorUpVector(), FMath::DegreesToRadians(rotationAngle));
+
+	m_velocity = rotationDelta.RotateVector(m_velocity);
+
+	AddActorWorldRotation(rotationDelta);
+}
+
+void AGoKart::updateLocationFromVelocity(float deltaTime)
+{
+	FVector translation = m_velocity * 100 * deltaTime; // now in meter
+
+	FHitResult hitResult;
+	AddActorWorldOffset(translation, true, &hitResult);
+	if (hitResult.bBlockingHit)
+	{
+		m_velocity = FVector::ZeroVector;
+	}
 }
 
 void AGoKart::moveForward(float value)
 {
-	m_velocity = GetActorForwardVector() * 20 * value; // 20cm/s
+	m_throttle = value;
 }
 
 void AGoKart::moveRight(float value)
 {
-
+	m_steering = value;
 }

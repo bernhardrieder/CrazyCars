@@ -11,25 +11,38 @@ class CRAZYCARS_API AGoKart : public APawn
 {
 	GENERATED_BODY()
 
+	// the mass of the car (kg)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Mass"))
+	float m_mass = 1000;
+
+	// the force applied to the car when the throttle is fully down (N)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Driving Force"))
+	float m_maxDrivingForce = 10000;
+
+	// the number of degrees rotated per second at full control throw (degree/s)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Steering Degrees Per Seconds"))
+	float m_maxSteeringDegreesPerSeconds = 90;
+
 public:
-	// Sets default values for this pawn's properties
 	AGoKart();
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float deltaTime) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+private:
+	void updateLocationFromVelocity(float deltaTime);
+	void applyRotation(float deltaTime);
 
 private:
 	void moveForward(float value);
 	void moveRight(float value);
 
-	FVector m_velocity;
+	FVector m_velocity = FVector::ZeroVector;
 	
+	float m_throttle = 0;
+	float m_steering = 0;
 };
