@@ -2,6 +2,7 @@
 
 #include "GoKart.h"
 #include "Components/InputComponent.h"
+#include "Engine/World.h"
 
 AGoKart::AGoKart()
 {
@@ -20,8 +21,12 @@ void AGoKart::Tick(float deltaTime)
 	Super::Tick(deltaTime);
 
 	FVector force = GetActorForwardVector() * m_maxDrivingForce * m_throttle;
+	force += getAirResistance();
+	force += getRollingResistance();
+
 	FVector acceleration = force / m_mass;
 	m_velocity += (acceleration * deltaTime);
+
 
 	applyRotation(deltaTime);
 	updateLocationFromVelocity(deltaTime);
@@ -35,6 +40,24 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 
 	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::moveForward);
 	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::moveRight);
+}
+
+FVector AGoKart::getRollingResistance()
+{
+	UWorld* world = GetWorld();
+	if (!world)
+		return FVector::ZeroVector;
+
+	float accelerationDueToGravity = -world->GetGravityZ() / 100.f; // divided by 100 to get rid of the UE units which is cm
+	float normalForce = m_mass * accelerationDueToGravity;
+	return -m_velocity.GetSafeNormal() * m_rollingResistanceCoefficient * normalForce;
+}
+
+FVector AGoKart::getAirResistance()
+{
+	float speedSquared = m_velocity.SizeSquared();
+	float airResistance = speedSquared*m_dragCoefficient;
+	return -m_velocity.GetSafeNormal() * airResistance;
 }
 
 void AGoKart::applyRotation(float deltaTime)

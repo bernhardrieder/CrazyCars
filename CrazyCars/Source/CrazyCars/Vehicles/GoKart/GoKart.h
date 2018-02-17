@@ -23,6 +23,14 @@ class CRAZYCARS_API AGoKart : public APawn
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Steering Degrees Per Seconds"))
 	float m_maxSteeringDegreesPerSeconds = 90;
 
+	// higher means more drag/ air resistance
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Drag Coefficient"))
+	float m_dragCoefficient = 16.0f;
+
+	// higher means more rolling resistance
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Rolling Resistance Coefficient"))
+	float m_rollingResistanceCoefficient = 0.015f;
+
 public:
 	AGoKart();
 
@@ -34,6 +42,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 
 private:
+	FVector getRollingResistance();
+	FVector getAirResistance();
 	void updateLocationFromVelocity(float deltaTime);
 	void applyRotation(float deltaTime);
 
