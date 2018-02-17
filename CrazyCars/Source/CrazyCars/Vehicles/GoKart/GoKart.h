@@ -19,9 +19,9 @@ class CRAZYCARS_API AGoKart : public APawn
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Driving Force"))
 	float m_maxDrivingForce = 10000;
 
-	// the number of degrees rotated per second at full control throw (degree/s)
-	UPROPERTY(EditAnywhere, meta = (DisplayName = "Max Steering Degrees Per Seconds"))
-	float m_maxSteeringDegreesPerSeconds = 90;
+	// minimum radius of the car turning circle at full lock (m)
+	UPROPERTY(EditAnywhere, meta = (DisplayName = "Minimum Turning Radius"))
+	float m_minimumTurningRadius = 10;
 
 	// higher means more drag/ air resistance
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "Drag Coefficient"))
