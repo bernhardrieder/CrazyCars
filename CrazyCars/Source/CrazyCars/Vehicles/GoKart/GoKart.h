@@ -48,8 +48,11 @@ private:
 	void applyRotation(float deltaTime);
 
 private:
-	void moveForward(float value);
-	void moveRight(float value);
+	UFUNCTION(Server, Reliable, WithValidation)
+	void server_moveForward(float value);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void server_moveRight(float value);
 
 	FVector m_velocity = FVector::ZeroVector;
 	

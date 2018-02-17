@@ -38,8 +38,8 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 
 	check(playerInputComponent);
 
-	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::moveForward);
-	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::moveRight);
+	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::server_moveForward);
+	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::server_moveRight);
 }
 
 FVector AGoKart::getRollingResistance()
@@ -83,12 +83,22 @@ void AGoKart::updateLocationFromVelocity(float deltaTime)
 	}
 }
 
-void AGoKart::moveForward(float value)
+void AGoKart::server_moveForward_Implementation(float value)
 {
 	m_throttle = value;
 }
 
-void AGoKart::moveRight(float value)
+bool AGoKart::server_moveForward_Validate(float value)
+{
+	return FMath::Abs(value) <= 1.f;
+}
+
+void AGoKart::server_moveRight_Implementation(float value)
 {
 	m_steering = value;
+}
+
+bool AGoKart::server_moveRight_Validate(float value)
+{
+	return FMath::Abs(value) <= 1.f;
 }
