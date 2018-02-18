@@ -39,16 +39,26 @@ void AGoKart::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
 
-	if(IsLocallyControlled())
+	//we are the player/client
+	if(Role == ROLE_AutonomousProxy)
 	{
-		FGoKartMove move;
-		move.DeltaTime = deltaTime;
-		move.Steering = m_steering;
-		move.Throttle = m_throttle;
-		move.Time = 0xDEADC0DE;
-	
-		server_sendMove(move);
+		const FGoKartMove move = createMove(deltaTime);
 		simulateMove(move);
+		m_unacknowledgedMoves.Add(move);
+		server_sendMove(move);
+	}
+
+	//we are the server and in control of the pawn
+	if(HasAuthority() && GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		const FGoKartMove move = createMove(deltaTime);
+		server_sendMove(move);
+	}
+
+	//we are another player/client in the actual player's/client's game
+	if(Role == ROLE_SimulatedProxy)
+	{
+		simulateMove(m_replicatedServerState.LastMove);
 	}
 
 	if (UWorld* const world = GetWorld())
@@ -132,6 +142,30 @@ void AGoKart::simulateMove(const FGoKartMove& move)
 	updateLocationFromVelocity(move.DeltaTime);
 }
 
+FGoKartMove AGoKart::createMove(float deltaTime)
+{
+	FGoKartMove move;
+	move.DeltaTime = deltaTime;
+	move.Steering = m_steering;
+	move.Throttle = m_throttle;
+	move.Time = GetWorld()->TimeSeconds;
+	return move;
+}
+
+void AGoKart::clearUnacknowledgedMoves(const FGoKartMove& lastMove)
+{
+	TArray<FGoKartMove> newMoves;
+	for(int32 i = 0; i < m_unacknowledgedMoves.Num(); ++i)
+	{
+		const FGoKartMove move = m_unacknowledgedMoves[i];
+		if(move.Time > lastMove.Time)
+		{
+			newMoves.Add(move);
+		}
+	}
+	m_unacknowledgedMoves = newMoves;
+}
+
 void AGoKart::server_sendMove_Implementation(FGoKartMove move)
 {
 	simulateMove(move);
@@ -150,4 +184,10 @@ void AGoKart::onRep_serverState()
 {
 	SetActorTransform(m_replicatedServerState.Transform);
 	m_velocity = m_replicatedServerState.Velocity;
+	clearUnacknowledgedMoves(m_replicatedServerState.LastMove);
+
+	for(int32 i = 0; i < m_unacknowledgedMoves.Num(); ++i)
+	{
+		simulateMove(m_unacknowledgedMoves[i]);
+	}
 }

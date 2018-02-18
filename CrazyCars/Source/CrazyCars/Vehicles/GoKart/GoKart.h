@@ -83,6 +83,8 @@ private:
 	void moveForward(float value);
 	void moveRight(float value);
 	void simulateMove(const FGoKartMove& move);
+	FGoKartMove createMove(float deltaTime);
+	void clearUnacknowledgedMoves(const FGoKartMove& lastMove);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void server_sendMove(FGoKartMove move);
@@ -94,4 +96,6 @@ private:
 	FVector m_velocity = FVector::ZeroVector;
 	float m_throttle = 0;
 	float m_steering = 0;
+
+	TArray<FGoKartMove> m_unacknowledgedMoves;
 };
