@@ -30,11 +30,11 @@ const FName ACrazyCarsPawn::LookRightBinding("LookRight");
 ACrazyCarsPawn::ACrazyCarsPawn()
 {
 	// Car mesh
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CarMesh(TEXT("/Game/Vehicle/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
-	GetMesh()->SetSkeletalMesh(CarMesh.Object);
+	//static ConstructorHelpers::FObjectFinder<USkeletalMesh> CarMesh(TEXT("/Game/Vehicle/Sedan/Sedan_SkelMesh.Sedan_SkelMesh"));
+	//GetMesh()->SetSkeletalMesh(CarMesh.Object);
 
-	static ConstructorHelpers::FClassFinder<UObject> AnimBPClass(TEXT("/Game/Vehicle/Sedan/Sedan_AnimBP"));
-	GetMesh()->SetAnimInstanceClass(AnimBPClass.Class);
+	//static ConstructorHelpers::FClassFinder<UObject> AnimBPClass(TEXT("/Game/Vehicle/Sedan/Sedan_AnimBP"));
+	//GetMesh()->SetAnimInstanceClass(AnimBPClass.Class);
 	
 	// Simulation
 	UWheeledVehicleMovementComponent4W* Vehicle4W = CastChecked<UWheeledVehicleMovementComponent4W>(GetVehicleMovement());

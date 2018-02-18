@@ -3,6 +3,7 @@
 #include "GoKart.h"
 #include "Components/InputComponent.h"
 #include "Engine/World.h"
+#include "DrawDebugHelpers.h"
 
 AGoKart::AGoKart()
 {
@@ -16,6 +17,22 @@ void AGoKart::BeginPlay()
 	
 }
 
+FString ToString(ENetRole role)
+{
+	switch (role)
+	{
+	default:
+	case ROLE_None:
+		return "None";
+	case ROLE_SimulatedProxy:
+		return "Simulated Proxy";
+	case ROLE_AutonomousProxy:
+		return "Autonomous Proxy";
+	case ROLE_Authority:
+		return "Authority";
+	}
+}
+
 void AGoKart::Tick(float deltaTime)
 {
 	Super::Tick(deltaTime);
@@ -27,6 +44,10 @@ void AGoKart::Tick(float deltaTime)
 	FVector acceleration = force / m_mass;
 	m_velocity += (acceleration * deltaTime);
 
+	if(UWorld* const world = GetWorld())
+	{
+		DrawDebugString(world, FVector::ZeroVector, ToString(Role), this, FColor::White, 0);
+	}
 
 	applyRotation(deltaTime);
 	updateLocationFromVelocity(deltaTime);
@@ -38,8 +59,8 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 
 	check(playerInputComponent);
 
-	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::server_moveForward);
-	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::server_moveRight);
+	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::client_moveForward);
+	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::client_moveRight);
 }
 
 FVector AGoKart::getRollingResistance()
@@ -83,9 +104,20 @@ void AGoKart::updateLocationFromVelocity(float deltaTime)
 	}
 }
 
-void AGoKart::server_moveForward_Implementation(float value)
+void AGoKart::moveForward(float value)
 {
 	m_throttle = value;
+}
+
+void AGoKart::client_moveForward(float value)
+{
+	moveForward(value);
+	server_moveForward(value);
+}
+
+void AGoKart::server_moveForward_Implementation(float value)
+{
+	moveForward(value);
 }
 
 bool AGoKart::server_moveForward_Validate(float value)
@@ -93,9 +125,20 @@ bool AGoKart::server_moveForward_Validate(float value)
 	return FMath::Abs(value) <= 1.f;
 }
 
-void AGoKart::server_moveRight_Implementation(float value)
+void AGoKart::moveRight(float value)
 {
 	m_steering = value;
+}
+
+void AGoKart::client_moveRight(float value)
+{
+	moveRight(value);
+	server_moveRight(value);
+}
+
+void AGoKart::server_moveRight_Implementation(float value)
+{
+	moveRight(value);
 }
 
 bool AGoKart::server_moveRight_Validate(float value)
