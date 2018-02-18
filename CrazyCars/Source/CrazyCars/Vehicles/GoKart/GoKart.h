@@ -7,35 +7,26 @@
 #include "GoKartStructs.h"
 #include "GoKart.generated.h"
 
+class UGoKartMovementReplicator;
 class UGoKartMovementComponent;
 UCLASS()
 class CRAZYCARS_API AGoKart : public APawn
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(ReplicatedUsing = onRep_serverState)
-	FGoKartState m_replicatedServerState;
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(VisibleAnywhere)
 	UGoKartMovementComponent* m_movementComponent = nullptr;
+
+	UPROPERTY(VisibleAnywhere)
+	UGoKartMovementReplicator* m_movementReplicator = nullptr;
 
 public:
 	AGoKart();
 	virtual void Tick(float deltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
+	FORCEINLINE_DEBUGGABLE UGoKartMovementComponent* GetGoKartMovementComponent() const { return m_movementComponent; }
 
 private:
 	void moveForward(float value);
 	void moveRight(float value);
-	void clearUnacknowledgedMoves(const FGoKartMove& lastMove);
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	void server_sendMove(FGoKartMove move);
-
-	UFUNCTION()
-	void onRep_serverState();
-
-private:
-
-	TArray<FGoKartMove> m_unacknowledgedMoves;
 };

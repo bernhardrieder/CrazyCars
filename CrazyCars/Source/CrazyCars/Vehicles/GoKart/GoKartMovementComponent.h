@@ -35,24 +35,21 @@ class CRAZYCARS_API UGoKartMovementComponent : public UActorComponent
 	float m_rollingResistanceCoefficient = 0.015f;
 
 public:	
-	// Sets default values for this component's properties
 	UGoKartMovementComponent();
-	virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 
 	void SimulateMove(const FGoKartMove& move);
-	FGoKartMove CreateMove(float deltaTime);
+	FGoKartMove CreateMove(float deltaTime) const;
 	void SetThrottle(float throttle);
 	void SetSteering(float steering);
 	void SetVelocity(const FVector& velocity);
 	FORCEINLINE_DEBUGGABLE FVector GetVelocity() const { return m_velocity; };
 
 protected:
-	// Called when the game starts
 	virtual void BeginPlay() override;
 
 private:
-	FVector getRollingResistance();
-	FVector getAirResistance();
+	FVector getRollingResistance() const;
+	FVector getAirResistance() const;
 	void updateLocationFromVelocity(float deltaTime);
 	void applyRotation(float deltaTime, float steering);
 

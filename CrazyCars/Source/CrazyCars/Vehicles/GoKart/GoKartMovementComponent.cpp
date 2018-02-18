@@ -4,22 +4,15 @@
 #include "GoKart.h"
 #include "Engine/World.h"
 
-// Sets default values for this component's properties
 UGoKartMovementComponent::UGoKartMovementComponent()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
 }
 
-
-// Called when the game starts
 void UGoKartMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
 	if(AGoKart* goKart = Cast<AGoKart>(GetOwner()))
 	{
 		m_goKart = goKart;
@@ -31,36 +24,30 @@ void UGoKartMovementComponent::BeginPlay()
 	
 }
 
-
-// Called every frame
-void UGoKartMovementComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
-{
-	Super::TickComponent(deltaTime, tickType, thisTickFunction);
-
-	// ...
-}
-
-FVector UGoKartMovementComponent::getRollingResistance()
+FVector UGoKartMovementComponent::getRollingResistance() const
 {
 	UWorld* world = GetWorld();
 	if (!world)
 		return FVector::ZeroVector;
 
-	float accelerationDueToGravity = -world->GetGravityZ() / 100.f; // divided by 100 to get rid of the UE units which is cm
-	float normalForce = m_mass * accelerationDueToGravity;
+	const float accelerationDueToGravity = -world->GetGravityZ() / 100.f; // divided by 100 to get rid of the UE units which is cm
+	const float normalForce = m_mass * accelerationDueToGravity;
 	return -m_velocity.GetSafeNormal() * m_rollingResistanceCoefficient * normalForce;
 }
 
-FVector UGoKartMovementComponent::getAirResistance()
+FVector UGoKartMovementComponent::getAirResistance() const
 {
-	float speedSquared = m_velocity.SizeSquared();
-	float airResistance = speedSquared * m_dragCoefficient;
+	const float speedSquared = m_velocity.SizeSquared();
+	const float airResistance = speedSquared * m_dragCoefficient;
 	return -m_velocity.GetSafeNormal() * airResistance;
 }
 
 void UGoKartMovementComponent::updateLocationFromVelocity(float deltaTime)
 {
-	FVector translation = m_velocity * 100 * deltaTime; // now in meter
+	if (!m_goKart)
+		return;
+
+	const FVector translation = m_velocity * 100 * deltaTime; // now in meter
 
 	FHitResult hitResult;
 	m_goKart->AddActorWorldOffset(translation, true, &hitResult);
@@ -72,8 +59,11 @@ void UGoKartMovementComponent::updateLocationFromVelocity(float deltaTime)
 
 void UGoKartMovementComponent::applyRotation(float deltaTime, float steering)
 {
-	float deltaLocation = FVector::DotProduct(m_goKart->GetActorForwardVector(), m_velocity) * deltaTime;
-	float rotationAngle = deltaLocation / m_minimumTurningRadius * steering;
+	if (!m_goKart)
+		return;
+
+	const float deltaLocation = FVector::DotProduct(m_goKart->GetActorForwardVector(), m_velocity) * deltaTime;
+	const float rotationAngle = deltaLocation / m_minimumTurningRadius * steering;
 	FQuat rotationDelta = FQuat(m_goKart->GetActorUpVector(), rotationAngle);
 
 	m_velocity = rotationDelta.RotateVector(m_velocity);
@@ -83,11 +73,14 @@ void UGoKartMovementComponent::applyRotation(float deltaTime, float steering)
 
 void UGoKartMovementComponent::SimulateMove(const FGoKartMove& move)
 {
+	if (!m_goKart)
+		return;
+
 	FVector force = m_goKart->GetActorForwardVector() * m_maxDrivingForce * move.Throttle;
 	force += getAirResistance();
 	force += getRollingResistance();
 
-	FVector acceleration = force / m_mass;
+	const FVector acceleration = force / m_mass;
 	m_velocity += (acceleration * move.DeltaTime);
 
 
@@ -95,7 +88,7 @@ void UGoKartMovementComponent::SimulateMove(const FGoKartMove& move)
 	updateLocationFromVelocity(move.DeltaTime);
 }
 
-FGoKartMove UGoKartMovementComponent::CreateMove(float deltaTime)
+FGoKartMove UGoKartMovementComponent::CreateMove(float deltaTime) const
 {
 	FGoKartMove move;
 	move.DeltaTime = deltaTime;
