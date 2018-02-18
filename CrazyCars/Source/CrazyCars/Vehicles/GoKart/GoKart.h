@@ -6,10 +6,46 @@
 #include "GameFramework/Pawn.h"
 #include "GoKart.generated.h"
 
+USTRUCT()
+struct FGoKartMove
+{
+	GENERATED_USTRUCT_BODY()
+	
+	UPROPERTY()
+	float Throttle;
+
+	UPROPERTY()
+	float Steering;
+
+	UPROPERTY()
+	float DeltaTime;
+
+	UPROPERTY()
+	float Time;
+};
+
+USTRUCT()
+struct FGoKartState
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	FGoKartMove LastMove;
+	
+	UPROPERTY()
+	FVector Velocity;
+
+	UPROPERTY()
+	FTransform Transform;
+};
+
 UCLASS()
 class CRAZYCARS_API AGoKart : public APawn
 {
 	GENERATED_BODY()
+	
+	UPROPERTY(ReplicatedUsing = onRep_serverState)
+	FGoKartState m_replicatedServerState;
 
 	// the mass of the car (kg)
 	UPROPERTY(EditAnywhere, meta = (DisplayName = "Mass"))
@@ -34,9 +70,6 @@ class CRAZYCARS_API AGoKart : public APawn
 public:
 	AGoKart();
 
-protected:
-	virtual void BeginPlay() override;
-
 public:	
 	virtual void Tick(float deltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
@@ -45,21 +78,20 @@ private:
 	FVector getRollingResistance();
 	FVector getAirResistance();
 	void updateLocationFromVelocity(float deltaTime);
-	void applyRotation(float deltaTime);
+	void applyRotation(float deltaTime, float steering);
+
+	void moveForward(float value);
+	void moveRight(float value);
+	void simulateMove(const FGoKartMove& move);
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void server_sendMove(FGoKartMove move);
+
+	UFUNCTION()
+	void onRep_serverState();
 
 private:
-	void moveForward(float value);
-	void client_moveForward(float value);
-	UFUNCTION(Server, Reliable, WithValidation)
-	void server_moveForward(float value);
-
-	void moveRight(float value);
-	void client_moveRight(float value);
-	UFUNCTION(Server, Reliable, WithValidation)
-	void server_moveRight(float value);
-
 	FVector m_velocity = FVector::ZeroVector;
-	
 	float m_throttle = 0;
 	float m_steering = 0;
 };
