@@ -27,6 +27,7 @@ protected:
 
 private:
 	void clearUnacknowledgedMoves(const FGoKartMove& lastMove);
+	void updateServerState(const FGoKartMove& move);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void server_sendMove(FGoKartMove move);

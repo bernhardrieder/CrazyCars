@@ -41,20 +41,19 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 	if (!m_goKart)
 		return;
 
+	const FGoKartMove lastMove = m_goKartMovementComponent->GetLastMove();
+
 	//we are the player/client
 	if (GetOwnerRole() == ROLE_AutonomousProxy)
 	{
-		const FGoKartMove move = m_goKartMovementComponent->CreateMove(deltaTime);
-		m_goKartMovementComponent->SimulateMove(move);
-		m_unacknowledgedMoves.Add(move);
-		server_sendMove(move);
+		m_unacknowledgedMoves.Add(lastMove);
+		server_sendMove(lastMove);
 	}
 
 	//we are the server and in control of the pawn
-	if (m_goKart->HasAuthority() && m_goKart->GetRemoteRole() == ROLE_SimulatedProxy)
+	if (m_goKart->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
-		const FGoKartMove move = m_goKartMovementComponent->CreateMove(deltaTime);
-		server_sendMove(move);
+		updateServerState(lastMove);
 	}
 
 	//we are another player/client in the actual player's/client's game
@@ -78,6 +77,13 @@ void UGoKartMovementReplicator::clearUnacknowledgedMoves(const FGoKartMove& last
 	m_unacknowledgedMoves = newMoves;
 }
 
+void UGoKartMovementReplicator::updateServerState(const FGoKartMove& move)
+{
+	m_replicatedServerState.LastMove = move;
+	m_replicatedServerState.Transform = m_goKart->GetActorTransform();
+	m_replicatedServerState.Velocity = m_goKartMovementComponent->GetVelocity();
+}
+
 void UGoKartMovementReplicator::server_sendMove_Implementation(FGoKartMove move)
 {
 	if (!m_goKart)
@@ -85,9 +91,7 @@ void UGoKartMovementReplicator::server_sendMove_Implementation(FGoKartMove move)
 
 	m_goKartMovementComponent->SimulateMove(move);
 
-	m_replicatedServerState.LastMove = move;
-	m_replicatedServerState.Transform = m_goKart->GetActorTransform();
-	m_replicatedServerState.Velocity = m_goKartMovementComponent->GetVelocity();
+	updateServerState(move);
 }
 
 bool UGoKartMovementReplicator::server_sendMove_Validate(FGoKartMove move)

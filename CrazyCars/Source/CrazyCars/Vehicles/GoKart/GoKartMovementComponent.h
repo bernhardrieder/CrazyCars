@@ -36,13 +36,14 @@ class CRAZYCARS_API UGoKartMovementComponent : public UActorComponent
 
 public:	
 	UGoKartMovementComponent();
+	virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 
 	void SimulateMove(const FGoKartMove& move);
-	FGoKartMove CreateMove(float deltaTime) const;
 	void SetThrottle(float throttle);
 	void SetSteering(float steering);
 	void SetVelocity(const FVector& velocity);
 	FORCEINLINE_DEBUGGABLE FVector GetVelocity() const { return m_velocity; };
+	FORCEINLINE_DEBUGGABLE FGoKartMove GetLastMove() const { return m_lastMove; };
 
 protected:
 	virtual void BeginPlay() override;
@@ -53,10 +54,11 @@ private:
 	void updateLocationFromVelocity(float deltaTime);
 	void applyRotation(float deltaTime, float steering);
 
+	FGoKartMove createMove(float deltaTime) const;
 
 private:
 	AGoKart* m_goKart = nullptr;
-
+	FGoKartMove m_lastMove;
 	FVector m_velocity = FVector::ZeroVector;
 	float m_throttle = 0;
 	float m_steering = 0;

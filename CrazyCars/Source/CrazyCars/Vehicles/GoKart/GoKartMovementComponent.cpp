@@ -24,6 +24,15 @@ void UGoKartMovementComponent::BeginPlay()
 	
 }
 
+void UGoKartMovementComponent::TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction)
+{
+	if (GetOwnerRole() == ROLE_AutonomousProxy || m_goKart->GetRemoteRole() == ROLE_SimulatedProxy)
+	{
+		m_lastMove = createMove(deltaTime);
+		SimulateMove(m_lastMove);
+	}
+}
+
 FVector UGoKartMovementComponent::getRollingResistance() const
 {
 	UWorld* world = GetWorld();
@@ -88,7 +97,7 @@ void UGoKartMovementComponent::SimulateMove(const FGoKartMove& move)
 	updateLocationFromVelocity(move.DeltaTime);
 }
 
-FGoKartMove UGoKartMovementComponent::CreateMove(float deltaTime) const
+FGoKartMove UGoKartMovementComponent::createMove(float deltaTime) const
 {
 	FGoKartMove move;
 	move.DeltaTime = deltaTime;
