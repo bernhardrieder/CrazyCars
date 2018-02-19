@@ -69,11 +69,14 @@ void UGoKartMovementReplicator::client_tick(float deltaTime)
 	if (m_client_timeBetweenLastUpdate < KINDA_SMALL_NUMBER)
 		return;
 
-	const FVector targetLocation = m_replicatedServerState.Transform.GetLocation();
 	const float lerpRatio = m_client_timeSinceUpdate / m_client_timeBetweenLastUpdate;
-	const FVector startLocation = m_client_startLocation;
-	const FVector newLocation = FMath::LerpStable(startLocation, targetLocation, lerpRatio);
-	GetOwner()->SetActorLocation(newLocation); 
+	const FTransform startTransform = m_client_startTransform;
+	const FTransform targetTransform = m_replicatedServerState.Transform;
+
+	FTransform newTransform = m_client_startTransform;
+	newTransform.SetLocation(FMath::LerpStable(startTransform.GetLocation(), targetTransform.GetLocation(), lerpRatio));
+	newTransform.SetRotation(FQuat::Slerp(startTransform.GetRotation(), targetTransform.GetRotation(), lerpRatio));
+	GetOwner()->SetActorTransform(newTransform);
 }
 
 void UGoKartMovementReplicator::clearUnacknowledgedMoves(const FGoKartMove& lastMove)
@@ -146,5 +149,5 @@ void UGoKartMovementReplicator::simulatedProxy_onRep_serverState()
 {
 	m_client_timeBetweenLastUpdate = m_client_timeSinceUpdate;
 	m_client_timeSinceUpdate = 0;
-	m_client_startLocation = GetOwner()->GetActorLocation();
+	m_client_startTransform = GetOwner()->GetActorTransform();
 }
