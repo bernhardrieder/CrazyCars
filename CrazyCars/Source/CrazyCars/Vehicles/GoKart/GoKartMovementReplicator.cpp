@@ -64,29 +64,48 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 
 void UGoKartMovementReplicator::client_tick(float deltaTime)
 {
-	if (!m_goKartMovementComponent)
-		return;
-
 	m_client_timeSinceUpdate += deltaTime;
-	
-	if (m_client_timeBetweenLastUpdate < KINDA_SMALL_NUMBER)
+
+	if (!m_goKartMovementComponent || m_client_timeBetweenLastUpdate < KINDA_SMALL_NUMBER)
 		return;
-
+	
 	const float lerpRatio = m_client_timeSinceUpdate / m_client_timeBetweenLastUpdate;
-	const FTransform startTransform = m_client_startTransform;
-	const FTransform targetTransform = m_replicatedServerState.Transform;
+	const FHermiteCubicSpline spline = createSpline();
+	interpolateLocation(spline, lerpRatio);
+	interpolateVelocity(spline, lerpRatio);
+	interpolateRotation(lerpRatio);
+}
 
-	const float velocityToDerivative = m_client_timeBetweenLastUpdate * 100; //velocity is in m/s BUT position is in cm! so we need to multiply by 100 to get cm
-	const FVector startDerivative = m_client_startVelocity * velocityToDerivative;
-	const FVector targetDerivative = m_replicatedServerState.Velocity * velocityToDerivative;
+FHermiteCubicSpline UGoKartMovementReplicator::createSpline() const
+{
+	FHermiteCubicSpline spline;
+	spline.StartLocation = m_client_startTransform.GetLocation();
+	spline.TargetLocation = m_replicatedServerState.Transform.GetLocation();
+	spline.StartDerivative = m_client_startVelocity * getVelocityToDerivate();
+	spline.TargetDerivative = m_replicatedServerState.Velocity * getVelocityToDerivate();
+	return spline;
+}
 
-	FTransform newTransform = m_client_startTransform;
-	newTransform.SetLocation(FMath::CubicInterp(startTransform.GetLocation(), startDerivative, targetTransform.GetLocation(), targetDerivative, lerpRatio));
-	newTransform.SetRotation(FQuat::Slerp(startTransform.GetRotation(), targetTransform.GetRotation(), lerpRatio));
-	GetOwner()->SetActorTransform(newTransform);
+float UGoKartMovementReplicator::getVelocityToDerivate() const
+{
+	//velocity is in m/s BUT position is in cm! so we need to multiply by 100 to get cm
+	return m_client_timeBetweenLastUpdate * 100; 
+}
 
-	const FVector newDerivative = FMath::CubicInterpDerivative(startTransform.GetLocation(), startDerivative, targetTransform.GetLocation(), targetDerivative, lerpRatio);
-	const FVector newVelocity = newDerivative / velocityToDerivative;
+void UGoKartMovementReplicator::interpolateLocation(const FHermiteCubicSpline& spline, float lerpRatio) const
+{
+	GetOwner()->SetActorLocation(spline.InterpolateLocation(lerpRatio));
+}
+
+void UGoKartMovementReplicator::interpolateRotation(float lerpRatio) const
+{
+	GetOwner()->SetActorRotation(FQuat::Slerp(m_client_startTransform.GetRotation(), m_replicatedServerState.Transform.GetRotation(), lerpRatio));
+}
+
+void UGoKartMovementReplicator::interpolateVelocity(const FHermiteCubicSpline& spline, float lerpRatio) const
+{
+	const FVector newDerivative = spline.InterpolateDerivative(lerpRatio);
+	const FVector newVelocity = newDerivative / getVelocityToDerivate();
 	m_goKartMovementComponent->SetVelocity(newVelocity);
 }
 
