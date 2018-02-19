@@ -5,6 +5,7 @@
 #include "GoKart.h"
 #include "GoKartMovementComponent.h"
 #include "UnrealNetwork.h"
+#include "Engine/World.h"
 
 UGoKartMovementReplicator::UGoKartMovementReplicator()
 {
@@ -141,6 +142,7 @@ void UGoKartMovementReplicator::server_sendMove_Implementation(FGoKartMove move)
 	if (!m_goKartMovementComponent)
 		return;
 
+	m_client_simulatedTime += move.DeltaTime;
 	m_goKartMovementComponent->SimulateMove(move);
 
 	updateServerState(move);
@@ -148,7 +150,23 @@ void UGoKartMovementReplicator::server_sendMove_Implementation(FGoKartMove move)
 
 bool UGoKartMovementReplicator::server_sendMove_Validate(FGoKartMove move)
 {
-	return FMath::Abs(move.Throttle) <= 1.f && FMath::Abs(move.Steering) <= 1.f;
+	const float proposedTime = m_client_simulatedTime + move.DeltaTime;
+	if(UWorld* const world = GetWorld())
+	{
+		const bool isClientNotRunningAhead = proposedTime < GetWorld()->TimeSeconds;
+		if(!isClientNotRunningAhead)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Client is running too fast!"));
+			return false;
+		}
+	}
+	if(!move.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("Received invalid move!"));
+		return false;
+	}
+
+	return true;
 }
 
 void UGoKartMovementReplicator::onRep_serverState()

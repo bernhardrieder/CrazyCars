@@ -73,4 +73,5 @@ private:
 	float m_client_timeBetweenLastUpdate = 0;
 	FTransform m_client_startTransform;
 	FVector m_client_startVelocity;
+	float m_client_simulatedTime = 0;
 };
