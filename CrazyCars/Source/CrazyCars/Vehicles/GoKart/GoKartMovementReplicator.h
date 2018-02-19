@@ -39,6 +39,9 @@ public:
 	UGoKartMovementReplicator();
 	virtual void TickComponent(float deltaTime, ELevelTick tickType, FActorComponentTickFunction* thisTickFunction) override;
 
+	UFUNCTION(BlueprintCallable)
+	void SetMeshOffsetRoot(USceneComponent* meshOffsetRoot) { m_meshOffsetRoot = meshOffsetRoot; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -64,6 +67,7 @@ private:
 	TArray<FGoKartMove> m_unacknowledgedMoves;
 
 	UGoKartMovementComponent* m_goKartMovementComponent = nullptr;
+	USceneComponent* m_meshOffsetRoot = nullptr;
 
 	float m_client_timeSinceUpdate = 0;
 	float m_client_timeBetweenLastUpdate = 0;

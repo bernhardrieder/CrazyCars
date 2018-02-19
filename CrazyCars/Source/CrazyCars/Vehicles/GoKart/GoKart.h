@@ -14,10 +14,11 @@ class CRAZYCARS_API AGoKart : public APawn
 {
 	GENERATED_BODY()
 	
+protected:
 	UPROPERTY(VisibleAnywhere)
 	UGoKartMovementComponent* m_movementComponent = nullptr;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UGoKartMovementReplicator* m_movementReplicator = nullptr;
 
 public:
