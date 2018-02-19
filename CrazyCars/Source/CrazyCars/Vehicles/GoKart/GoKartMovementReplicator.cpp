@@ -64,6 +64,9 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 
 void UGoKartMovementReplicator::client_tick(float deltaTime)
 {
+	if (!m_goKartMovementComponent)
+		return;
+
 	m_client_timeSinceUpdate += deltaTime;
 	
 	if (m_client_timeBetweenLastUpdate < KINDA_SMALL_NUMBER)
@@ -73,10 +76,18 @@ void UGoKartMovementReplicator::client_tick(float deltaTime)
 	const FTransform startTransform = m_client_startTransform;
 	const FTransform targetTransform = m_replicatedServerState.Transform;
 
+	const float velocityToDerivative = m_client_timeBetweenLastUpdate * 100; //velocity is in m/s BUT position is in cm! so we need to multiply by 100 to get cm
+	const FVector startDerivative = m_client_startVelocity * velocityToDerivative;
+	const FVector targetDerivative = m_replicatedServerState.Velocity * velocityToDerivative;
+
 	FTransform newTransform = m_client_startTransform;
-	newTransform.SetLocation(FMath::LerpStable(startTransform.GetLocation(), targetTransform.GetLocation(), lerpRatio));
+	newTransform.SetLocation(FMath::CubicInterp(startTransform.GetLocation(), startDerivative, targetTransform.GetLocation(), targetDerivative, lerpRatio));
 	newTransform.SetRotation(FQuat::Slerp(startTransform.GetRotation(), targetTransform.GetRotation(), lerpRatio));
 	GetOwner()->SetActorTransform(newTransform);
+
+	const FVector newDerivative = FMath::CubicInterpDerivative(startTransform.GetLocation(), startDerivative, targetTransform.GetLocation(), targetDerivative, lerpRatio);
+	const FVector newVelocity = newDerivative / velocityToDerivative;
+	m_goKartMovementComponent->SetVelocity(newVelocity);
 }
 
 void UGoKartMovementReplicator::clearUnacknowledgedMoves(const FGoKartMove& lastMove)
@@ -147,7 +158,11 @@ void UGoKartMovementReplicator::autonomousProxy_onRep_serverState()
 
 void UGoKartMovementReplicator::simulatedProxy_onRep_serverState()
 {
+	if (!m_goKartMovementComponent)
+		return;
+
 	m_client_timeBetweenLastUpdate = m_client_timeSinceUpdate;
 	m_client_timeSinceUpdate = 0;
 	m_client_startTransform = GetOwner()->GetActorTransform();
+	m_client_startVelocity = m_goKartMovementComponent->GetVelocity();
 }

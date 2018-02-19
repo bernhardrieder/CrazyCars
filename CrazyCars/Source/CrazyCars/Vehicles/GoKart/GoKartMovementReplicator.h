@@ -46,4 +46,5 @@ private:
 	float m_client_timeSinceUpdate = 0;
 	float m_client_timeBetweenLastUpdate = 0;
 	FTransform m_client_startTransform;
+	FVector m_client_startVelocity;
 };
