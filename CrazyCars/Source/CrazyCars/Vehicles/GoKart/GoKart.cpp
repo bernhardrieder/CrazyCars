@@ -12,6 +12,7 @@ AGoKart::AGoKart()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+	bReplicateMovement = false;
 
 	m_movementComponent = CreateDefaultSubobject<UGoKartMovementComponent>(FName("Movement Component"));
 	m_movementReplicator = CreateDefaultSubobject<UGoKartMovementReplicator>(FName("Movement Replicator"));
@@ -51,6 +52,17 @@ void AGoKart::SetupPlayerInputComponent(UInputComponent* playerInputComponent)
 
 	playerInputComponent->BindAxis("MoveForward", this, &AGoKart::moveForward);
 	playerInputComponent->BindAxis("MoveRight", this, &AGoKart::moveRight);
+}
+
+void AGoKart::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if(HasAuthority())
+	{
+		//creates a lag on the client
+		NetUpdateFrequency = 1;
+	}
 }
 
 void AGoKart::moveForward(float value)

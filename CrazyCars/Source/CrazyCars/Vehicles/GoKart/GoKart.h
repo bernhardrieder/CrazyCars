@@ -26,6 +26,9 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* playerInputComponent) override;
 	FORCEINLINE_DEBUGGABLE UGoKartMovementComponent* GetGoKartMovementComponent() const { return m_movementComponent; }
 
+protected:
+	virtual void BeginPlay() override;
+
 private:
 	void moveForward(float value);
 	void moveRight(float value);

@@ -25,7 +25,6 @@ void UGoKartMovementReplicator::BeginPlay()
 
 	if (AGoKart* goKart = Cast<AGoKart>(GetOwner()))
 	{
-		m_goKart = goKart;
 		m_goKartMovementComponent = goKart->GetGoKartMovementComponent();
 	}
 	else
@@ -38,7 +37,7 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 {
 	Super::TickComponent(deltaTime, tickType, thisTickFunction);
 
-	if (!m_goKart)
+	if (!m_goKartMovementComponent)
 		return;
 
 	const FGoKartMove lastMove = m_goKartMovementComponent->GetLastMove();
@@ -51,7 +50,7 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 	}
 
 	//we are the server and in control of the pawn
-	if (m_goKart->GetRemoteRole() == ROLE_SimulatedProxy)
+	if (GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
 	{
 		updateServerState(lastMove);
 	}
@@ -59,8 +58,22 @@ void UGoKartMovementReplicator::TickComponent(float deltaTime, ELevelTick tickTy
 	//we are another player/client in the actual player's/client's game
 	if (GetOwnerRole() == ROLE_SimulatedProxy)
 	{
-		m_goKartMovementComponent->SimulateMove(m_replicatedServerState.LastMove);
+		client_tick(deltaTime);
 	}
+}
+
+void UGoKartMovementReplicator::client_tick(float deltaTime)
+{
+	m_client_timeSinceUpdate += deltaTime;
+	
+	if (m_client_timeBetweenLastUpdate < KINDA_SMALL_NUMBER)
+		return;
+
+	const FVector targetLocation = m_replicatedServerState.Transform.GetLocation();
+	const float lerpRatio = m_client_timeSinceUpdate / m_client_timeBetweenLastUpdate;
+	const FVector startLocation = m_client_startLocation;
+	const FVector newLocation = FMath::LerpStable(startLocation, targetLocation, lerpRatio);
+	GetOwner()->SetActorLocation(newLocation); 
 }
 
 void UGoKartMovementReplicator::clearUnacknowledgedMoves(const FGoKartMove& lastMove)
@@ -80,13 +93,13 @@ void UGoKartMovementReplicator::clearUnacknowledgedMoves(const FGoKartMove& last
 void UGoKartMovementReplicator::updateServerState(const FGoKartMove& move)
 {
 	m_replicatedServerState.LastMove = move;
-	m_replicatedServerState.Transform = m_goKart->GetActorTransform();
+	m_replicatedServerState.Transform = GetOwner()->GetActorTransform();
 	m_replicatedServerState.Velocity = m_goKartMovementComponent->GetVelocity();
 }
 
 void UGoKartMovementReplicator::server_sendMove_Implementation(FGoKartMove move)
 {
-	if (!m_goKart)
+	if (!m_goKartMovementComponent)
 		return;
 
 	m_goKartMovementComponent->SimulateMove(move);
@@ -101,10 +114,25 @@ bool UGoKartMovementReplicator::server_sendMove_Validate(FGoKartMove move)
 
 void UGoKartMovementReplicator::onRep_serverState()
 {
-	if (!m_goKart)
+	switch(GetOwnerRole())
+	{
+	case ROLE_AutonomousProxy:
+		autonomousProxy_onRep_serverState();
+		break;
+	case ROLE_SimulatedProxy:
+		simulatedProxy_onRep_serverState();
+		break;
+	default:
+		break;
+	}
+}
+
+void UGoKartMovementReplicator::autonomousProxy_onRep_serverState()
+{
+	if (!m_goKartMovementComponent)
 		return;
 
-	m_goKart->SetActorTransform(m_replicatedServerState.Transform);
+	GetOwner()->SetActorTransform(m_replicatedServerState.Transform);
 	m_goKartMovementComponent->SetVelocity(m_replicatedServerState.Velocity);
 	clearUnacknowledgedMoves(m_replicatedServerState.LastMove);
 
@@ -112,4 +140,11 @@ void UGoKartMovementReplicator::onRep_serverState()
 	{
 		m_goKartMovementComponent->SimulateMove(m_unacknowledgedMoves[i]);
 	}
+}
+
+void UGoKartMovementReplicator::simulatedProxy_onRep_serverState()
+{
+	m_client_timeBetweenLastUpdate = m_client_timeSinceUpdate;
+	m_client_timeSinceUpdate = 0;
+	m_client_startLocation = GetOwner()->GetActorLocation();
 }

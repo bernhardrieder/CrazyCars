@@ -28,16 +28,22 @@ protected:
 private:
 	void clearUnacknowledgedMoves(const FGoKartMove& lastMove);
 	void updateServerState(const FGoKartMove& move);
+	void client_tick(float deltaTime);
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void server_sendMove(FGoKartMove move);
 
 	UFUNCTION()
 	void onRep_serverState();
+	void autonomousProxy_onRep_serverState();
+	void simulatedProxy_onRep_serverState();
 		
 private:
 	TArray<FGoKartMove> m_unacknowledgedMoves;
 
-	AGoKart* m_goKart = nullptr;
 	UGoKartMovementComponent* m_goKartMovementComponent = nullptr;
+
+	float m_client_timeSinceUpdate = 0;
+	float m_client_timeBetweenLastUpdate = 0;
+	FVector m_client_startLocation;
 };
